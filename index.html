@@ -23,6 +23,8 @@
     --accent-line: rgba(61, 130, 247, 0.35);
     --danger: #ff6b5e;
     --danger-line: #e0574d;
+    --check-unchecked: #192743;
+    --success: #34c77b;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -354,6 +356,43 @@
     font-weight: 600;
     font-size: 0.84rem;
     font-variant-numeric: tabular-nums;
+  }
+  .item-name {
+    flex: 1;
+  }
+  .item-check {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1.5px solid var(--check-unchecked);
+    background: var(--check-unchecked);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .item-check:checked {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .item-check:checked::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .shopping-list li.checked .item-name,
+  .shopping-list li.checked .amount {
+    opacity: 0.45;
+    text-decoration: line-through;
   }
 
   .actions {
@@ -1122,7 +1161,10 @@ function recalculate() {
       grouped.get(cat).forEach(item => {
         const { text, unit } = fmtAmount(item.amount, item.unit, item.name);
         const li = document.createElement('li');
-        li.innerHTML = `<span class="amount">${escapeHtml(text)} ${escapeHtml(unit)}</span> ${escapeHtml(item.name)}`;
+        li.innerHTML = `<span class="amount">${escapeHtml(text)} ${escapeHtml(unit)}</span><span class="item-name">${escapeHtml(item.name)}</span><input type="checkbox" class="item-check" aria-label="${escapeHtml(item.name)} abgehakt">`;
+        li.querySelector('.item-check').addEventListener('change', (e) => {
+          li.classList.toggle('checked', e.target.checked);
+        });
         shoppingListEl.appendChild(li);
       });
     });

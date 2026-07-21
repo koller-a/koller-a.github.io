@@ -478,6 +478,76 @@
   }
   .modal-actions button { flex: 1; }
 
+  .modal-lg { max-width: 480px; }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .modal-head h3 { margin: 0; }
+  .modal-close {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .modal-close:hover {
+    color: var(--text);
+    border-color: var(--text-faint);
+  }
+  .modal-body {
+    max-height: 62vh;
+    overflow-y: auto;
+    margin: -4px -4px 0;
+    padding: 4px;
+  }
+  .recipe-amount-block { margin-bottom: 18px; }
+  .recipe-amount-block:last-child { margin-bottom: 0; }
+  .recipe-amount-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .recipe-amount-name {
+    font-weight: 700;
+    font-size: 0.98rem;
+    overflow-wrap: anywhere;
+  }
+  .recipe-amount-factor {
+    flex-shrink: 0;
+    color: var(--accent-2);
+    font-weight: 600;
+    font-size: 0.82rem;
+  }
+  .recipe-amount-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .recipe-amount-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 2px;
+    font-size: 0.9rem;
+  }
+
   .toast {
     position: fixed;
     left: 50%;
@@ -539,7 +609,7 @@
       </span>
       <div class="brand-text">
         <h1>Keks-Einkaufsliste</h1>
-        <p class="subtitle">Sorte wählen, Wunschgewicht eintragen — Zutaten werden automatisch zusammengerechnet.</p>
+        <p class="subtitle">Sorte wählen, Menge als Vielfaches des Grundrezepts eintragen (1 = einfache Menge, 2 = doppelte Menge, ...) — Zutaten werden automatisch zusammengerechnet.</p>
       </div>
     </div>
     <div class="stat-strip">
@@ -579,7 +649,7 @@
         <ul class="shopping-list" id="shoppingList"></ul>
         <div id="emptyState" class="empty-state" style="display:none;">Noch keine Menge ausgewählt.</div>
         <div class="actions">
-          <button class="primary" id="copyBtn">Liste kopieren</button>
+          <button class="primary" id="recipeAmountsBtn">Rezeptmengen</button>
           <button class="ghost" id="resetBtn">Zurücksetzen</button>
         </div>
       </div>
@@ -588,7 +658,7 @@
 
 </div>
 
-<div class="toast" id="toast">Kopiert ✓</div>
+<div class="toast" id="toast"></div>
 
 <div class="modal-overlay" id="resetModalOverlay" hidden>
   <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="resetModalTitle" aria-describedby="resetModalDesc">
@@ -598,6 +668,16 @@
       <button type="button" class="ghost" id="resetCancelBtn">Abbrechen</button>
       <button type="button" class="danger" id="resetConfirmBtn">Zurücksetzen</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="amountsModalOverlay" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="amountsModalTitle">
+    <div class="modal-head">
+      <h3 id="amountsModalTitle">Rezeptmengen</h3>
+      <button type="button" class="modal-close" id="amountsCloseBtn" aria-label="Schließen">×</button>
+    </div>
+    <div class="modal-body" id="amountsModalBody"></div>
   </div>
 </div>
 
@@ -1055,12 +1135,15 @@ const emptyStateEl = document.getElementById('emptyState');
 const grandTotalEl = document.getElementById('grandTotal');
 const statSortenEl = document.getElementById('statSorten');
 const statZutatenEl = document.getElementById('statZutaten');
-const copyBtn = document.getElementById('copyBtn');
+const recipeAmountsBtn = document.getElementById('recipeAmountsBtn');
 const resetBtn = document.getElementById('resetBtn');
 const toastEl = document.getElementById('toast');
 const resetModalOverlay = document.getElementById('resetModalOverlay');
 const resetCancelBtn = document.getElementById('resetCancelBtn');
 const resetConfirmBtn = document.getElementById('resetConfirmBtn');
+const amountsModalOverlay = document.getElementById('amountsModalOverlay');
+const amountsModalBody = document.getElementById('amountsModalBody');
+const amountsCloseBtn = document.getElementById('amountsCloseBtn');
 
 let activeIds = [];
 
@@ -1083,7 +1166,7 @@ function renderRecipeCard(idx) {
     </div>
     <div class="recipe-input-wrap">
       <input type="number" inputmode="decimal" step="0.5" min="0" value="1" data-idx="${idx}">
-      <span class="unit-label">kg</span>
+      <span class="unit-label">×</span>
     </div>
     <button type="button" class="remove-btn" aria-label="${escapeHtml(recipe.name)} entfernen">×</button>
   `;
@@ -1178,9 +1261,9 @@ function recalculate() {
     const val = parseFloat(input.value);
     if (!val || val <= 0) return;
     const recipe = RECIPES[parseInt(input.dataset.idx, 10)];
-    const desiredG = val * 1000;
+    const factor = val;
+    const desiredG = baseYield(recipe) * factor;
     grandTotalG += desiredG;
-    const factor = desiredG / baseYield(recipe);
 
     recipe.ingredients.forEach(ing => {
       const mainName = mainIngredientName(ing.name);
@@ -1235,15 +1318,37 @@ function recalculate() {
   if (statZutatenEl) statZutatenEl.textContent = items.length;
 }
 
-function buildCopyText() {
-  const lines = [];
-  Array.from(shoppingListEl.querySelectorAll('li')).forEach(li => {
-    if (li.classList.contains('category-header')) return;
-    const amount = li.querySelector('.amount').textContent.trim();
-    const name = li.textContent.replace(li.querySelector('.amount').textContent, '').trim();
-    lines.push(`${amount} ${name}`);
+function renderRecipeAmounts() {
+  const entries = recipeListEl.querySelectorAll('input[type="number"]');
+  const active = Array.from(entries)
+    .map(input => ({ recipe: RECIPES[parseInt(input.dataset.idx, 10)], factor: parseFloat(input.value) }))
+    .filter(entry => entry.factor > 0);
+
+  amountsModalBody.innerHTML = '';
+  if (active.length === 0) {
+    amountsModalBody.innerHTML = '<div class="empty-state">Keine Rezepte mit einer Menge über 0 ausgewählt.</div>';
+    return;
+  }
+
+  active.forEach(({ recipe, factor }) => {
+    const block = document.createElement('div');
+    block.className = 'recipe-amount-block';
+    block.innerHTML = `
+      <div class="recipe-amount-head">
+        <span class="recipe-amount-name">${escapeHtml(recipe.name)}</span>
+        <span class="recipe-amount-factor">× ${fmtDE(factor, 2)}</span>
+      </div>
+      <ul class="recipe-amount-list"></ul>
+    `;
+    const list = block.querySelector('.recipe-amount-list');
+    recipe.ingredients.forEach(ing => {
+      const { text, unit } = fmtAmount(ing.amount * factor, ing.unit, ing.name);
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="amount">${escapeHtml(text)} ${escapeHtml(unit)}</span><span class="item-name">${escapeHtml(ing.name)}</span>`;
+      list.appendChild(li);
+    });
+    amountsModalBody.appendChild(block);
   });
-  return lines.join('\n');
 }
 
 function showToast(msg) {
@@ -1254,26 +1359,19 @@ function showToast(msg) {
 
 recipeListEl.addEventListener('input', recalculate);
 
-copyBtn.addEventListener('click', async () => {
-  const text = buildCopyText();
-  if (!text) {
-    showToast('Liste ist leer');
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast('Kopiert ✓');
-  } catch (e) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('Kopiert ✓');
-  }
+function openAmountsModal() {
+  renderRecipeAmounts();
+  amountsModalOverlay.hidden = false;
+}
+
+function closeAmountsModal() {
+  amountsModalOverlay.hidden = true;
+}
+
+recipeAmountsBtn.addEventListener('click', openAmountsModal);
+amountsCloseBtn.addEventListener('click', closeAmountsModal);
+amountsModalOverlay.addEventListener('click', (e) => {
+  if (e.target === amountsModalOverlay) closeAmountsModal();
 });
 
 function openResetModal() {
@@ -1295,7 +1393,9 @@ resetModalOverlay.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !resetModalOverlay.hidden) closeResetModal();
+  if (e.key !== 'Escape') return;
+  if (!resetModalOverlay.hidden) closeResetModal();
+  if (!amountsModalOverlay.hidden) closeAmountsModal();
 });
 
 resetConfirmBtn.addEventListener('click', () => {

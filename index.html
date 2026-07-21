@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';">
+<title>Keks-Einkaufsliste</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #080b12;
+    --panel: #10151f;
+    --panel-2: #151b28;
+    --elevated: #1a2230;
+    --border: #232c3d;
+    --border-soft: #1c2431;
+    --text: #e9edf6;
+    --text-dim: #8a94a8;
+    --text-faint: #5c6678;
+    --accent: #3d82f7;
+    --accent-2: #5a97ff;
+    --accent-soft: rgba(61, 130, 247, 0.13);
+    --accent-line: rgba(61, 130, 247, 0.35);
+    --danger: #ff6b5e;
+    --danger-line: #e0574d;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  .glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(900px 480px at 50% -12%, rgba(61, 130, 247, 0.15), transparent 70%),
+      radial-gradient(560px 380px at 100% 0%, rgba(61, 130, 247, 0.06), transparent 60%);
+  }
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 22px 16px 56px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    background: linear-gradient(180deg, rgba(21, 27, 40, 0.9), rgba(16, 21, 31, 0.9));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .brand-icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    color: var(--accent-2);
+  }
+  .brand-text { min-width: 0; }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 3px;
+    text-wrap: balance;
+  }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.84rem;
+    line-height: 1.35;
+    margin: 0;
+    max-width: 46ch;
+  }
+
+  .stat-strip {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 16px;
+    min-width: 78px;
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+  }
+  .stat-label {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 600;
+    color: var(--text-faint);
+  }
+  .stat-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .stat-value.accent { color: var(--accent-2); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .panel {
+    background: linear-gradient(180deg, rgba(19, 25, 37, 0.92), rgba(14, 19, 28, 0.92));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 15px 18px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .panel-head h2 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .panel-body { padding: 16px; }
+
+  .recipe-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 13px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.15s ease;
+  }
+  .recipe-card:hover { border-color: var(--border); }
+  .recipe-info { flex: 1; min-width: 0; }
+  .recipe-name {
+    font-weight: 600;
+    font-size: 0.96rem;
+    overflow-wrap: anywhere;
+  }
+  .recipe-base {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    margin-top: 2px;
+  }
+  .recipe-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  input[type="number"] {
+    width: 74px;
+    padding: 9px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #0c111a;
+    color: var(--text);
+    font-size: 1rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .unit-label {
+    color: var(--text-dim);
+    font-size: 0.86rem;
+  }
+  .remove-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .remove-btn:hover,
+  .remove-btn:active {
+    border-color: var(--danger-line);
+    color: var(--danger);
+    background: rgba(224, 87, 77, 0.1);
+  }
+
+  .add-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .add-btn:hover,
+  .add-btn:active {
+    border-color: var(--accent);
+    color: var(--accent-2);
+    background: var(--accent-soft);
+  }
+  .add-btn-icon {
+    flex-shrink: 0;
+    display: flex;
+    transition: transform 0.18s ease;
+  }
+  .add-btn-icon.is-open {
+    transform: rotate(180deg);
+  }
+  .picker {
+    margin-top: 10px;
+    background: var(--elevated);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    overflow: hidden;
+  }
+  .picker .empty-state {
+    border: none;
+    border-radius: 0;
+  }
+  .picker-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 15px;
+    border: none;
+    border-bottom: 1px solid var(--border-soft);
+    background: transparent;
+    color: var(--text);
+    font-size: 0.94rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .picker-row:last-child { border-bottom: none; }
+  .picker-row:hover,
+  .picker-row:active { background: var(--accent-soft); }
+  .picker-row-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .picker-row-base {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    padding: 20px 16px;
+    text-align: center;
+    border: 1px dashed var(--border-soft);
+    border-radius: 12px;
+  }
+
+  .shopping-list {
+    list-style: none;
+    margin: 0 0 4px;
+    padding: 0;
+  }
+  .shopping-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 0.95rem;
+  }
+  .shopping-list li:last-child { border-bottom: none; }
+  .shopping-list li.category-header {
+    padding: 16px 2px 6px;
+    border-bottom: none;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 700;
+    color: var(--accent-2);
+  }
+  .shopping-list li.category-header:first-child {
+    padding-top: 2px;
+  }
+  .amount {
+    flex-shrink: 0;
+    min-width: 66px;
+    text-align: center;
+    padding: 4px 9px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    color: var(--accent-2);
+    font-weight: 600;
+    font-size: 0.84rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  button {
+    font-size: 0.94rem;
+    padding: 12px 16px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.primary {
+    flex: 1;
+    background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 6px 18px -6px rgba(61, 130, 247, 0.7);
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  button.primary:hover { box-shadow: 0 8px 22px -6px rgba(61, 130, 247, 0.85); }
+  button.primary:active { transform: translateY(1px); }
+  button.ghost {
+    background: transparent;
+    color: var(--text-dim);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  button.ghost:hover {
+    color: var(--text);
+    border-color: var(--text-faint);
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .topbar { padding: 14px; }
+    h1 { font-size: 1.25rem; }
+    .stat-strip { width: 100%; }
+    .stat {
+      flex: 1;
+      min-width: 0;
+      align-items: center;
+      text-align: center;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="2"/>
+          <circle cx="14" cy="15" r="2.1" fill="currentColor"/>
+          <circle cx="25" cy="13" r="1.6" fill="currentColor"/>
+          <circle cx="26" cy="23" r="2" fill="currentColor"/>
+          <circle cx="15" cy="25" r="1.7" fill="currentColor"/>
+          <circle cx="21" cy="19" r="1.3" fill="currentColor"/>
+        </svg>
+      </span>
+      <div class="brand-text">
+        <h1>Keks-Einkaufsliste</h1>
+        <p class="subtitle">Sorte wählen, Wunschgewicht eintragen — Zutaten werden automatisch zusammengerechnet.</p>
+      </div>
+    </div>
+    <div class="stat-strip">
+      <div class="stat">
+        <span class="stat-label">Gesamt</span>
+        <span class="stat-value accent" id="grandTotal">0 kg</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Sorten</span>
+        <span class="stat-value" id="statSorten">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Zutaten</span>
+        <span class="stat-value" id="statZutaten">0</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2>Rezepte</h2></div>
+      <div class="panel-body">
+        <div id="recipeList"></div>
+        <button type="button" class="add-btn" id="addRecipeBtn" aria-expanded="false">
+          <span>+ Rezept hinzufügen</span>
+          <svg class="add-btn-icon" id="addRecipeBtnIcon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M3 5.25L7 9.25L11 5.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="picker" id="recipePicker" hidden></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Einkaufsliste</h2></div>
+      <div class="panel-body">
+        <ul class="shopping-list" id="shoppingList"></ul>
+        <div id="emptyState" class="empty-state" style="display:none;">Noch keine Menge ausgewählt.</div>
+        <div class="actions">
+          <button class="primary" id="copyBtn">Liste kopieren</button>
+          <button class="ghost" id="resetBtn">Zurücksetzen</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Kopiert ✓</div>
+
+<script>
+const RECIPES = [
+  {
+    "name": "Königsschnitten",
+    "ingredients": [
+      {
+        "name": "Dinkelmehl (glatt)",
+        "amount": 150.0,
+        "unit": "g"
+      },
+      {
+        "name": "Butter",
+        "amount": 100.0,
+        "unit": "g"
+      },
+      {
+        "name": "Staubzucker",
+        "amount": 50.0,
+        "unit": "g"
+      },
+      {
+        "name": "geriebene Mandeln",
+        "amount": 50.0,
+        "unit": "g"
+      },
+      {
+        "name": "Eigelb",
+        "amount": 1.0,
+        "unit": "Stk"
+      },
+      {
+        "name": "Zitronenschale",
+        "amount": 1.0,
+        "unit": "Stk"
+      },
+      {
+        "name": "Vanille",
+        "amount": 3.0,
+        "unit": "g"
+      },
+      {
+        "name": "Salz",
+        "amount": 1.0,
+        "unit": "Prise"
+      },
+      {
+        "name": "Obers",
+        "amount": 125.0,
+        "unit": "ml"
+      },
+      {
+        "name": "Honig",
+        "amount": 50.0,
+        "unit": "g"
+      },
+      {
+        "name": "Kristallzucker",
+        "amount": 150.0,
+        "unit": "g"
+      },
+      {
+        "name": "Mandelblättchen",
+        "amount": 150.0,
+        "unit": "g"
+      },
+      {
+        "name": "Marillenmarmelade",
+        "amount": 150.0,
+        "unit": "g"
+      }
+    ],
+    "_source": "recipes/raw/koenigsschnitten.txt"
+  },
+  {
+    "name": "Kürbiskernkipferl",
+    "ingredients": [
+      {
+        "name": "Dinkelmehl",
+        "amount": 165.0,
+        "unit": "g"
+      },
+      {
+        "name": "Butter",
+        "amount": 125.0,
+        "unit": "g"
+      },
+      {
+        "name": "Kürbiskerne (gerieben)",
+        "amount": 100.0,
+        "unit": "g"
+      },
+      {
+        "name": "Datteln (für Dattelpaste)",
+        "amount": 100.0,
+        "unit": "g"
+      },
+      {
+        "name": "Kürbiskernöl",
+        "amount": 0.75,
+        "unit": "EL"
+      },
+      {
+        "name": "Salz",
+        "amount": 1.0,
+        "unit": "Prise"
+      }
+    ],
+    "_source": "recipes/raw/kuerbiskernkipferl.txt"
+  },
+  {
+    "name": "Lebkuchen",
+    "ingredients": [
+      {
+        "name": "Roggenmehl",
+        "amount": 300.0,
+        "unit": "g"
+      },
+      {
+        "name": "Ei",
+        "amount": 2.0,
+        "unit": "Stk"
+      },
+      {
+        "name": "Dattelzucker",
+        "amount": 80.0,
+        "unit": "g"
+      },
+      {
+        "name": "Mandelmehl",
+        "amount": 170.0,
+        "unit": "g"
+      },
+      {
+        "name": "Lebkuchengewürz",
+        "amount": 20.0,
+        "unit": "g"
+      },
+      {
+        "name": "Butter",
+        "amount": 50.0,
+        "unit": "g"
+      },
+      {
+        "name": "Dattelpaste",
+        "amount": 120.0,
+        "unit": "g"
+      },
+      {
+        "name": "Mandelmus",
+        "amount": 2.0,
+        "unit": "TL"
+      },
+      {
+        "name": "Natron",
+        "amount": 2.0,
+        "unit": "TL"
+      }
+    ],
+    "_source": "recipes/raw/lebkuchen.txt"
+  },
+  {
+    "name": "Linzer-Augen",
+    "ingredients": [
+      {
+        "name": "Staubzucker",
+        "amount": 200.0,
+        "unit": "g"
+      },
+      {
+        "name": "Butter",
+        "amount": 400.0,
+        "unit": "g"
+      },
+      {
+        "name": "Dinkelmehl",
+        "amount": 600.0,
+        "unit": "g"
+      },
+      {
+        "name": "Ei",
+        "amount": 1.0,
+        "unit": "Stk"
+      },
+      {
+        "name": "Zitronenschale",
+        "amount": 1.0,
+        "unit": "Stk"
+      },
+      {
+        "name": "Vanillezucker",
+        "amount": 1.0,
+        "unit": "Pkg"
+      }
+    ],
+    "_source": "recipes/raw/linzer-augen.txt"
+  },
+  {
+    "name": "Linzer-Dattel",
+    "ingredients": [
+      {
+        "name": "Dinkelmehl",
+        "amount": 250.0,
+        "unit": "g"
+      },
+      {
+        "name": "Dattelpaste",
+        "amount": 150.0,
+        "unit": "g"
+      },
+      {
+        "name": "Vegane Butter",
+        "amount": 150.0,
+        "unit": "g"
+      },
+      {
+        "name": "Mandeln",
+        "amount": 60.0,
+        "unit": "g"
+      },
+      {
+        "name": "Bourbon-Vanille (gemahlen)",
+        "amount": 3.0,
+        "unit": "g"
+      }
+    ],
+    "_source": "recipes/raw/linzer-dattel.txt"
+  },
+  {
+    "name": "Rumkugeln",
+    "ingredients": [
+      {
+        "name": "geriebene Schokolade",
+        "amount": 200.0,
+        "unit": "g"
+      },
+      {
+        "name": "Haselnüsse",
+        "amount": 200.0,
+        "unit": "g"
+      },
+      {
+        "name": "Staubzucker",
+        "amount": 100.0,
+        "unit": "g"
+      },
+      {
+        "name": "Rum",
+        "amount": 3.0,
+        "unit": "EL"
+      },
+      {
+        "name": "Kokosflocken",
+        "amount": 75.0,
+        "unit": "g"
+      }
+    ],
+    "_source": "recipes/raw/rumkugeln.txt"
+  },
+  {
+    "name": "Vanille-Kipferl",
+    "ingredients": [
+      {
+        "name": "Dinkelmehl",
+        "amount": 200.0,
+        "unit": "g"
+      },
+      {
+        "name": "geriebene Mandeln",
+        "amount": 100.0,
+        "unit": "g"
+      },
+      {
+        "name": "Datteln",
+        "amount": 100.0,
+        "unit": "g"
+      },
+      {
+        "name": "Butter",
+        "amount": 150.0,
+        "unit": "g"
+      },
+      {
+        "name": "Leinsamen-Ei",
+        "amount": 1.0,
+        "unit": "Stk"
+      },
+      {
+        "name": "Bourbon-Vanille (gemahlen)",
+        "amount": 3.0,
+        "unit": "g"
+      }
+    ],
+    "_source": "recipes/raw/vanille-kipferl.txt"
+  }
+];
+
+// Klassische Warengruppen-Einteilung, wie sie in österreichischen
+// Supermärkten (Billa, Spar, Hofer, ...) üblich ist. Neue, unbekannte
+// Zutaten landen automatisch in "Sonstiges" - nichts bricht dadurch.
+const CATEGORY_ORDER = [
+  'Milchprodukte & Eier',
+  'Pflanzliche Alternativen',
+  'Mehl & Backzutaten',
+  'Zucker & Süßungsmittel',
+  'Nüsse, Kerne & Trockenfrüchte',
+  'Schokolade & Kakao',
+  'Marmelade, Honig & Aufstriche',
+  'Gewürze & Aromen',
+  'Öle & Fette',
+  'Getränke & Spirituosen',
+  'Sonstiges',
+];
+
+const CATEGORY_MAP = {
+  // Milchprodukte & Eier
+  'butter': 'Milchprodukte & Eier',
+  'obers': 'Milchprodukte & Eier',
+  'schlagobers': 'Milchprodukte & Eier',
+  'milch': 'Milchprodukte & Eier',
+  'joghurt': 'Milchprodukte & Eier',
+  'topfen': 'Milchprodukte & Eier',
+  'sauerrahm': 'Milchprodukte & Eier',
+  'creme fraiche': 'Milchprodukte & Eier',
+  'ei': 'Milchprodukte & Eier',
+  'eier': 'Milchprodukte & Eier',
+  'eigelb': 'Milchprodukte & Eier',
+  'eiweiß': 'Milchprodukte & Eier',
+  // Pflanzliche Alternativen
+  'vegane butter': 'Pflanzliche Alternativen',
+  'leinsamen-ei': 'Pflanzliche Alternativen',
+  'hafermilch': 'Pflanzliche Alternativen',
+  'mandelmilch': 'Pflanzliche Alternativen',
+  'sojamilch': 'Pflanzliche Alternativen',
+  'pflanzenobers': 'Pflanzliche Alternativen',
+  // Mehl & Backzutaten
+  'mehl': 'Mehl & Backzutaten',
+  'dinkelmehl': 'Mehl & Backzutaten',
+  'roggenmehl': 'Mehl & Backzutaten',
+  'weizenmehl': 'Mehl & Backzutaten',
+  'mandelmehl': 'Mehl & Backzutaten',
+  'kokosmehl': 'Mehl & Backzutaten',
+  'natron': 'Mehl & Backzutaten',
+  'backpulver': 'Mehl & Backzutaten',
+  'speisestärke': 'Mehl & Backzutaten',
+  // Zucker & Süßungsmittel
+  'zucker': 'Zucker & Süßungsmittel',
+  'staubzucker': 'Zucker & Süßungsmittel',
+  'kristallzucker': 'Zucker & Süßungsmittel',
+  'dattelzucker': 'Zucker & Süßungsmittel',
+  'vanillezucker': 'Zucker & Süßungsmittel',
+  'rohrzucker': 'Zucker & Süßungsmittel',
+  'birkenzucker': 'Zucker & Süßungsmittel',
+  'ahornsirup': 'Zucker & Süßungsmittel',
+  // Nüsse, Kerne & Trockenfrüchte
+  'mandeln': 'Nüsse, Kerne & Trockenfrüchte',
+  'geriebene mandeln': 'Nüsse, Kerne & Trockenfrüchte',
+  'gemahlene mandeln': 'Nüsse, Kerne & Trockenfrüchte',
+  'mandelblättchen': 'Nüsse, Kerne & Trockenfrüchte',
+  'haselnüsse': 'Nüsse, Kerne & Trockenfrüchte',
+  'gemahlene haselnüsse': 'Nüsse, Kerne & Trockenfrüchte',
+  'walnüsse': 'Nüsse, Kerne & Trockenfrüchte',
+  'pistazien': 'Nüsse, Kerne & Trockenfrüchte',
+  'kürbiskerne': 'Nüsse, Kerne & Trockenfrüchte',
+  'sonnenblumenkerne': 'Nüsse, Kerne & Trockenfrüchte',
+  'datteln': 'Nüsse, Kerne & Trockenfrüchte',
+  'rosinen': 'Nüsse, Kerne & Trockenfrüchte',
+  'kokosflocken': 'Nüsse, Kerne & Trockenfrüchte',
+  'kokosraspeln': 'Nüsse, Kerne & Trockenfrüchte',
+  // Schokolade & Kakao
+  'schokolade': 'Schokolade & Kakao',
+  'geriebene schokolade': 'Schokolade & Kakao',
+  'kakao': 'Schokolade & Kakao',
+  'kuvertüre': 'Schokolade & Kakao',
+  'schokodrops': 'Schokolade & Kakao',
+  // Marmelade, Honig & Aufstriche
+  'marmelade': 'Marmelade, Honig & Aufstriche',
+  'marillenmarmelade': 'Marmelade, Honig & Aufstriche',
+  'ribiselmarmelade': 'Marmelade, Honig & Aufstriche',
+  'dattelpaste': 'Marmelade, Honig & Aufstriche',
+  'mandelmus': 'Marmelade, Honig & Aufstriche',
+  'nussmus': 'Marmelade, Honig & Aufstriche',
+  'honig': 'Marmelade, Honig & Aufstriche',
+  // Gewürze & Aromen
+  'salz': 'Gewürze & Aromen',
+  'zitronenschale': 'Gewürze & Aromen',
+  'orangenschale': 'Gewürze & Aromen',
+  'vanille': 'Gewürze & Aromen',
+  'bourbon-vanille': 'Gewürze & Aromen',
+  'lebkuchengewürz': 'Gewürze & Aromen',
+  'spekulatiusgewürz': 'Gewürze & Aromen',
+  'zimt': 'Gewürze & Aromen',
+  'nelken': 'Gewürze & Aromen',
+  'kardamom': 'Gewürze & Aromen',
+  'ingwer': 'Gewürze & Aromen',
+  // Öle & Fette
+  'kürbiskernöl': 'Öle & Fette',
+  'sonnenblumenöl': 'Öle & Fette',
+  'rapsöl': 'Öle & Fette',
+  'olivenöl': 'Öle & Fette',
+  'kokosöl': 'Öle & Fette',
+  // Getränke & Spirituosen
+  'rum': 'Getränke & Spirituosen',
+  'weinbrand': 'Getränke & Spirituosen',
+  'amaretto': 'Getränke & Spirituosen',
+};
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function categoryFor(name) {
+  return CATEGORY_MAP[name.trim().toLowerCase()] || 'Sonstiges';
+}
+
+function baseYield(recipe) {
+  if (recipe.yield_g) return recipe.yield_g;
+  return recipe.ingredients
+    .filter(i => i.unit === 'g' || i.unit === 'ml')
+    .reduce((sum, i) => sum + i.amount, 0);
+}
+
+function fmtDE(n, maxDecimals = 2) {
+  return n.toLocaleString('de-DE', { maximumFractionDigits: maxDecimals, minimumFractionDigits: 0 });
+}
+
+function fmtAmount(amount, unit, name) {
+  const normalizedName = name ? name.trim().toLowerCase() : '';
+  if (normalizedName === 'ei') {
+    return { text: fmtDE(Math.round(amount), 0), unit };
+  }
+  if (normalizedName === 'salz') {
+    return { text: fmtDE(Math.round(amount / 2) * 2, 0), unit };
+  }
+  if (unit === 'g' && amount >= 1000) {
+    return { text: fmtDE(amount / 1000, 2), unit: 'kg' };
+  }
+  if (unit === 'ml' && amount >= 1000) {
+    return { text: fmtDE(amount / 1000, 2), unit: 'l' };
+  }
+  const decimals = (unit === 'g' || unit === 'ml') ? 0 : 2;
+  return { text: fmtDE(amount, decimals), unit };
+}
+
+const recipeListEl = document.getElementById('recipeList');
+const addRecipeBtn = document.getElementById('addRecipeBtn');
+const addRecipeBtnIcon = document.getElementById('addRecipeBtnIcon');
+const pickerEl = document.getElementById('recipePicker');
+const shoppingListEl = document.getElementById('shoppingList');
+const emptyStateEl = document.getElementById('emptyState');
+const grandTotalEl = document.getElementById('grandTotal');
+const statSortenEl = document.getElementById('statSorten');
+const statZutatenEl = document.getElementById('statZutaten');
+const copyBtn = document.getElementById('copyBtn');
+const resetBtn = document.getElementById('resetBtn');
+const toastEl = document.getElementById('toast');
+
+let activeIds = [];
+
+function setPickerOpen(open) {
+  pickerEl.hidden = !open;
+  addRecipeBtn.setAttribute('aria-expanded', String(open));
+  addRecipeBtnIcon.classList.toggle('is-open', open);
+}
+
+function renderRecipeCard(idx) {
+  const recipe = RECIPES[idx];
+  const by = baseYield(recipe);
+  const card = document.createElement('div');
+  card.className = 'recipe-card';
+  card.dataset.idx = idx;
+  card.innerHTML = `
+    <div class="recipe-info">
+      <div class="recipe-name">${escapeHtml(recipe.name)}</div>
+      <div class="recipe-base">Grundrezept ≈ ${fmtDE(by / 1000, 2)} kg</div>
+    </div>
+    <div class="recipe-input-wrap">
+      <input type="number" inputmode="decimal" step="0.5" min="0" value="1" data-idx="${idx}">
+      <span class="unit-label">kg</span>
+    </div>
+    <button type="button" class="remove-btn" aria-label="${escapeHtml(recipe.name)} entfernen">×</button>
+  `;
+  card.querySelector('.remove-btn').addEventListener('click', () => removeRecipe(idx));
+  recipeListEl.appendChild(card);
+}
+
+function updateEmptyRecipeState() {
+  const existing = recipeListEl.querySelector('.recipe-empty');
+  if (activeIds.length === 0) {
+    if (!existing) {
+      const el = document.createElement('div');
+      el.className = 'empty-state recipe-empty';
+      el.textContent = 'Noch keine Sorte hinzugefügt.';
+      recipeListEl.appendChild(el);
+    }
+  } else if (existing) {
+    existing.remove();
+  }
+}
+
+function renderPicker() {
+  const available = RECIPES
+    .map((recipe, idx) => idx)
+    .filter(idx => !activeIds.includes(idx));
+
+  if (available.length === 0) {
+    pickerEl.innerHTML = '<div class="empty-state">Alle gespeicherten Rezepte sind schon in der Liste.</div>';
+    return;
+  }
+
+  pickerEl.innerHTML = '';
+  available.forEach(idx => {
+    const recipe = RECIPES[idx];
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'picker-row';
+    row.innerHTML = `
+      <span class="picker-row-name">${escapeHtml(recipe.name)}</span>
+      <span class="picker-row-base">≈ ${fmtDE(baseYield(recipe) / 1000, 2)} kg</span>
+    `;
+    row.addEventListener('click', () => {
+      addRecipe(idx);
+      setPickerOpen(false);
+    });
+    pickerEl.appendChild(row);
+  });
+}
+
+function addRecipe(idx) {
+  if (activeIds.includes(idx)) return;
+  activeIds.push(idx);
+  renderRecipeCard(idx);
+  updateEmptyRecipeState();
+  renderPicker();
+  recalculate();
+}
+
+function removeRecipe(idx) {
+  activeIds = activeIds.filter(i => i !== idx);
+  const card = recipeListEl.querySelector(`.recipe-card[data-idx="${idx}"]`);
+  if (card) card.remove();
+  updateEmptyRecipeState();
+  renderPicker();
+  recalculate();
+}
+
+if (RECIPES.length === 0) {
+  recipeListEl.innerHTML = '<div class="empty-state">Noch keine Rezepte im Ordner „recipes“ gefunden.</div>';
+  addRecipeBtn.style.display = 'none';
+} else {
+  updateEmptyRecipeState();
+  renderPicker();
+}
+
+addRecipeBtn.addEventListener('click', () => {
+  const willOpen = pickerEl.hidden;
+  if (willOpen) renderPicker();
+  setPickerOpen(willOpen);
+});
+
+function mainIngredientName(name) {
+  return name.trim().replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
+function recalculate() {
+  const inputs = recipeListEl.querySelectorAll('input[type="number"]');
+  const combined = new Map();
+  let grandTotalG = 0;
+
+  inputs.forEach(input => {
+    const val = parseFloat(input.value);
+    if (!val || val <= 0) return;
+    const recipe = RECIPES[parseInt(input.dataset.idx, 10)];
+    const desiredG = val * 1000;
+    grandTotalG += desiredG;
+    const factor = desiredG / baseYield(recipe);
+
+    recipe.ingredients.forEach(ing => {
+      const mainName = mainIngredientName(ing.name);
+      const key = mainName.toLowerCase() + '|' + ing.unit.trim().toLowerCase();
+      const scaled = ing.amount * factor;
+      if (combined.has(key)) {
+        combined.get(key).amount += scaled;
+      } else {
+        combined.set(key, { name: mainName, unit: ing.unit.trim(), amount: scaled });
+      }
+    });
+  });
+
+  grandTotalEl.textContent = fmtDE(grandTotalG / 1000, 2) + ' kg';
+
+  const items = Array.from(combined.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+
+  const grouped = new Map();
+  items.forEach(item => {
+    const cat = categoryFor(item.name);
+    if (!grouped.has(cat)) grouped.set(cat, []);
+    grouped.get(cat).push(item);
+  });
+  const orderedCats = CATEGORY_ORDER.filter(cat => grouped.has(cat));
+  grouped.forEach((_, cat) => {
+    if (!orderedCats.includes(cat)) orderedCats.push(cat);
+  });
+
+  shoppingListEl.innerHTML = '';
+  if (items.length === 0) {
+    emptyStateEl.style.display = 'block';
+  } else {
+    emptyStateEl.style.display = 'none';
+    orderedCats.forEach(cat => {
+      const header = document.createElement('li');
+      header.className = 'category-header';
+      header.textContent = cat;
+      shoppingListEl.appendChild(header);
+      grouped.get(cat).forEach(item => {
+        const { text, unit } = fmtAmount(item.amount, item.unit, item.name);
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="amount">${escapeHtml(text)} ${escapeHtml(unit)}</span> ${escapeHtml(item.name)}`;
+        shoppingListEl.appendChild(li);
+      });
+    });
+  }
+
+  if (statSortenEl) statSortenEl.textContent = activeIds.length;
+  if (statZutatenEl) statZutatenEl.textContent = items.length;
+}
+
+function buildCopyText() {
+  const lines = [];
+  Array.from(shoppingListEl.querySelectorAll('li')).forEach(li => {
+    if (li.classList.contains('category-header')) return;
+    const amount = li.querySelector('.amount').textContent.trim();
+    const name = li.textContent.replace(li.querySelector('.amount').textContent, '').trim();
+    lines.push(`${amount} ${name}`);
+  });
+  return lines.join('\n');
+}
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 1600);
+}
+
+recipeListEl.addEventListener('input', recalculate);
+
+copyBtn.addEventListener('click', async () => {
+  const text = buildCopyText();
+  if (!text) {
+    showToast('Liste ist leer');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Kopiert ✓');
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Kopiert ✓');
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  recipeListEl.querySelectorAll('input[type="number"]').forEach(i => i.value = '1');
+  recalculate();
+});
+
+recalculate();
+</script>
+</body>
+</html>

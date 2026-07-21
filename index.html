@@ -791,8 +791,8 @@ const RECIPES = [
       },
       {
         "name": "Vanillezucker",
-        "amount": 1.0,
-        "unit": "Pkg"
+        "amount": 8.0,
+        "unit": "g"
       }
     ],
     "_source": "recipes/raw/linzer-augen.txt"
@@ -1030,7 +1030,7 @@ function fmtDE(n, maxDecimals = 2) {
 
 function fmtAmount(amount, unit, name) {
   const normalizedName = name ? name.trim().toLowerCase() : '';
-  if (normalizedName === 'ei') {
+  if (normalizedName === 'ei' || normalizedName === 'eigelb') {
     return { text: fmtDE(Math.round(amount), 0), unit };
   }
   if (normalizedName === 'salz') {

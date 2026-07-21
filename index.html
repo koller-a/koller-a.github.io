@@ -434,6 +434,50 @@
     border-color: var(--text-faint);
   }
 
+  button.danger {
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+  button.danger:hover { background: var(--danger-line); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 6, 10, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 20;
+  }
+  .modal-overlay[hidden] { display: none; }
+  .modal {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.7);
+  }
+  .modal h3 {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+  }
+  .modal p {
+    margin: 0 0 20px;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .modal-actions button { flex: 1; }
+
   .toast {
     position: fixed;
     left: 50%;
@@ -545,6 +589,17 @@
 </div>
 
 <div class="toast" id="toast">Kopiert ✓</div>
+
+<div class="modal-overlay" id="resetModalOverlay" hidden>
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="resetModalTitle" aria-describedby="resetModalDesc">
+    <h3 id="resetModalTitle">Alle Rezepte entfernen?</h3>
+    <p id="resetModalDesc">Die komplette Auswahl wird geleert. Dieser Schritt kann nicht rückgängig gemacht werden.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" id="resetCancelBtn">Abbrechen</button>
+      <button type="button" class="danger" id="resetConfirmBtn">Zurücksetzen</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const RECIPES = [
@@ -1003,6 +1058,9 @@ const statZutatenEl = document.getElementById('statZutaten');
 const copyBtn = document.getElementById('copyBtn');
 const resetBtn = document.getElementById('resetBtn');
 const toastEl = document.getElementById('toast');
+const resetModalOverlay = document.getElementById('resetModalOverlay');
+const resetCancelBtn = document.getElementById('resetCancelBtn');
+const resetConfirmBtn = document.getElementById('resetConfirmBtn');
 
 let activeIds = [];
 
@@ -1218,9 +1276,36 @@ copyBtn.addEventListener('click', async () => {
   }
 });
 
+function openResetModal() {
+  resetModalOverlay.hidden = false;
+}
+
+function closeResetModal() {
+  resetModalOverlay.hidden = true;
+}
+
 resetBtn.addEventListener('click', () => {
-  recipeListEl.querySelectorAll('input[type="number"]').forEach(i => i.value = '1');
+  openResetModal();
+});
+
+resetCancelBtn.addEventListener('click', closeResetModal);
+
+resetModalOverlay.addEventListener('click', (e) => {
+  if (e.target === resetModalOverlay) closeResetModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !resetModalOverlay.hidden) closeResetModal();
+});
+
+resetConfirmBtn.addEventListener('click', () => {
+  activeIds = [];
+  recipeListEl.innerHTML = '';
+  updateEmptyRecipeState();
+  renderPicker();
   recalculate();
+  closeResetModal();
+  showToast('Zurückgesetzt');
 });
 
 recalculate();

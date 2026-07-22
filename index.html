@@ -1267,6 +1267,7 @@ function recalculate() {
 
     recipe.ingredients.forEach(ing => {
       const mainName = mainIngredientName(ing.name);
+      if (mainName.toLowerCase() === 'wasser') return;
       const key = mainName.toLowerCase() + '|' + ing.unit.trim().toLowerCase();
       const scaled = ing.amount * factor;
       if (combined.has(key)) {
